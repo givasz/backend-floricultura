@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(if not exist .env copy .env.example .env)",
+      "Bash(tree:*)",
+      "Bash(docker ps:*)",
+      "Bash(psql:*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma generate)",
+      "Bash(docker run:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npm start)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(npm run dev:*)",
+      "Bash(taskkill:*)",
+      "Bash(findstr:*)",
+      "Bash(gh auth status:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

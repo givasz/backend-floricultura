@@ -1,0 +1,313 @@
+// server.js
+require("dotenv").config();
+const express = require("express");
+const bodyParser = require("body-parser");
+const { PrismaClient } = require("@prisma/client");
+const { customAlphabet } = require("nanoid");
+
+const app = express();
+const prisma = new PrismaClient();
+app.use(bodyParser.json());
+
+// config
+const PORT = process.env.PORT || 3000;
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || null;
+const ADMIN_USER = process.env.ADMIN_USER || null;
+const ADMIN_PASS = process.env.ADMIN_PASS || null;
+const APP_BASE_URL = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
+
+// util nanoid (8 chars alfanum)
+const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
+
+// --- Middleware simples para rotas admin ---
+// Você pode mandar um header: Authorization: Bearer <ADMIN_TOKEN>
+// ou Basic Auth com ADMIN_USER:ADMIN_PASS
+function adminAuth(req, res, next) {
+  // 1. Bearer token
+  const auth = req.headers.authorization;
+  if (auth && auth.startsWith("Bearer ")) {
+    const token = auth.split(" ")[1];
+    if (ADMIN_TOKEN && token === ADMIN_TOKEN) return next();
+  }
+
+  // 2. Basic auth (base64 user:pass)
+  if (auth && auth.startsWith("Basic ")) {
+    const b64 = auth.split(" ")[1];
+    const decoded = Buffer.from(b64, "base64").toString("utf8");
+    const [u, p] = decoded.split(":");
+    if (ADMIN_USER && ADMIN_PASS && u === ADMIN_USER && p === ADMIN_PASS) {
+      return next();
+    }
+  }
+
+  return res.status(401).json({ error: "Unauthorized (admin only)" });
+}
+
+// ----------------- USERS (exemplo) -----------------
+app.post("/users", async (req, res) => {
+  const { name, email } = req.body;
+  try {
+    const user = await prisma.user.create({ data: { name, email } });
+    res.status(201).json(user);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/users", async (req, res) => {
+  const users = await prisma.user.findMany({ select: { id: true, name: true, email: true } });
+  res.json(users);
+});
+
+app.get("/users/:id", async (req, res) => {
+  const { id } = req.params;
+  const user = await prisma.user.findUnique({ where: { id: parseInt(id) } });
+  if (user) res.json(user);
+  else res.status(404).json({ error: "User not found" });
+});
+
+app.put("/users/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, email } = req.body;
+  try {
+    const user = await prisma.user.update({ where: { id: parseInt(id) }, data: { name, email } });
+    res.json(user);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete("/users/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.user.delete({ where: { id: parseInt(id) } });
+    res.status(204).end();
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ----------------- CATEGORIES -----------------
+app.post("/categories", adminAuth, async (req, res) => {
+  const { name } = req.body;
+  try {
+    const cat = await prisma.category.create({ data: { name } });
+    res.status(201).json(cat);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/categories", async (req, res) => {
+  const cats = await prisma.category.findMany({ include: { products: true } });
+  res.json(cats);
+});
+
+app.put("/categories/:id", adminAuth, async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  try {
+    const cat = await prisma.category.update({ where: { id: parseInt(id) }, data: { name } });
+    res.json(cat);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete("/categories/:id", adminAuth, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.category.delete({ where: { id: parseInt(id) } });
+    res.status(204).end();
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ----------------- PRODUCTS -----------------
+app.post("/products", adminAuth, async (req, res) => {
+  const { name, description, price, imageUrl, categoryId, active } = req.body;
+  try {
+    const p = await prisma.product.create({
+      data: { name, description, price: parseFloat(price), imageUrl, categoryId: categoryId ? parseInt(categoryId) : null, active: active !== undefined ? !!active : true }
+    });
+    res.status(201).json(p);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get("/products", async (req, res) => {
+  // query params: ?category=ID&active=true
+  const { category, active } = req.query;
+  const where = {};
+  if (category) where.categoryId = parseInt(category);
+  if (active !== undefined) where.active = active === "true";
+  const products = await prisma.product.findMany({ where, include: { category: true } });
+  res.json(products);
+});
+
+app.get("/products/:id", async (req, res) => {
+  const { id } = req.params;
+  const p = await prisma.product.findUnique({ where: { id: parseInt(id) } });
+  if (p) res.json(p);
+  else res.status(404).json({ error: "Product not found" });
+});
+
+app.put("/products/:id", adminAuth, async (req, res) => {
+  const { id } = req.params;
+  const { name, description, price, imageUrl, categoryId, active } = req.body;
+  try {
+    const p = await prisma.product.update({
+      where: { id: parseInt(id) },
+      data: {
+        name, description, price: price !== undefined ? parseFloat(price) : undefined,
+        imageUrl, categoryId: categoryId ? parseInt(categoryId) : null, active
+      }
+    });
+    res.json(p);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete("/products/:id", adminAuth, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.product.delete({ where: { id: parseInt(id) } });
+    res.status(204).end();
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// rota para ativar/desativar produto (toggle)
+app.post("/products/:id/toggle", adminAuth, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const p = await prisma.product.findUnique({ where: { id: parseInt(id) } });
+    if (!p) return res.status(404).json({ error: "Product not found" });
+    const updated = await prisma.product.update({ where: { id: parseInt(id) }, data: { active: !p.active } });
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ----------------- CART FLOW (link do carrinho) -----------------
+
+/**
+ * Exemplo de payload esperado para salvar um carrinho:
+ * {
+ *   customerName: "Maria",
+ *   phone: "+551199999999",
+ *   note: "Urgente",
+ *   items: [
+ *     { productId: 1, qty: 2 },
+ *     { productId: 3, qty: 1 }
+ *   ]
+ * }
+ */
+app.post("/carrinho", async (req, res) => {
+  const { customerName, phone, note, items } = req.body;
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: "Cart must have at least one item" });
+  }
+
+  // gerar UID curto e garantir unicidade
+  let uid = nanoid();
+  // garantir não colidir (loop curto)
+  let exists = await prisma.cart.findUnique({ where: { uid } });
+  let attempts = 0;
+  while (exists && attempts < 5) {
+    uid = nanoid();
+    exists = await prisma.cart.findUnique({ where: { uid } });
+    attempts++;
+  }
+
+  try {
+    // criar cart
+    const cart = await prisma.cart.create({
+      data: {
+        uid,
+        customerName,
+        phone,
+        note,
+        items: {
+          create: await Promise.all(items.map(async (it) => {
+            // pegar preço no momento
+            const prod = await prisma.product.findUnique({ where: { id: parseInt(it.productId) } });
+            if (!prod) throw new Error(`Product ${it.productId} not found`);
+            return { productId: prod.id, qty: parseInt(it.qty), price: prod.price };
+          }))
+        }
+      },
+      include: { items: true }
+    });
+
+    const link = `${APP_BASE_URL.replace(/\/$/, "")}/carrinho/${cart.uid}`;
+    // retornar link (p/ front colocar no WhatsApp)
+    res.status(201).json({ cartId: cart.id, uid: cart.uid, link });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// rota pública que mostra o carrinho por uid (ex: abrir no browser)
+app.get("/carrinho/:uid", async (req, res) => {
+  const { uid } = req.params;
+  const cart = await prisma.cart.findUnique({
+    where: { uid },
+    include: {
+      items: { include: { product: true } }
+    }
+  });
+  if (!cart) return res.status(404).json({ error: "Carrinho não encontrado" });
+
+  // retornar detalhes do carrinho (front gera a view bonitinha)
+  res.json(cart);
+});
+
+// rota para administrador editar/atualizar um carrinho (ex.: confirmar, editar qty)
+app.put("/carrinho/:uid", adminAuth, async (req, res) => {
+  const { uid } = req.params;
+  const { items, customerName, phone, note } = req.body;
+  const cart = await prisma.cart.findUnique({ where: { uid }, include: { items: true } });
+  if (!cart) return res.status(404).json({ error: "Carrinho não encontrado" });
+
+  try {
+    // simples approach: apagar items antigos e recriar (pode ser melhor refinado)
+    await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+    const createdItems = await Promise.all(items.map(async (it) => {
+      const prod = await prisma.product.findUnique({ where: { id: parseInt(it.productId) } });
+      if (!prod) throw new Error(`Product ${it.productId} not found`);
+      return prisma.cartItem.create({
+        data: { cartId: cart.id, productId: prod.id, qty: parseInt(it.qty), price: prod.price }
+      });
+    }));
+
+    const updated = await prisma.cart.update({
+      where: { id: cart.id },
+      data: { customerName, phone, note },
+      include: { items: true }
+    });
+
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// opcional: lista de carrinhos (admin)
+app.get("/admin/carrinhos", adminAuth, async (req, res) => {
+  const carts = await prisma.cart.findMany({ orderBy: { createdAt: "desc" }, include: { items: { include: { product: true } } } });
+  res.json(carts);
+});
+
+// health
+app.get("/health", (req, res) => res.json({ ok: true }));
+
+// start
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
