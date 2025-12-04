@@ -170,10 +170,10 @@ curl -X POST http://localhost:3000/products \
   -H "Authorization: Bearer seu_token_super_secreto_aqui" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Pizza Margherita",
-    "description": "Molho, queijo e manjericão",
-    "price": 35.90,
-    "imageUrl": "https://example.com/pizza.jpg",
+    "name": "Buquê de Rosas Vermelhas",
+    "description": "Arranjo com 12 rosas vermelhas frescas",
+    "price": 89.90,
+    "imageUrl": "https://example.com/rosas.jpg",
     "categoryId": 1,
     "active": true
   }'
@@ -185,12 +185,12 @@ curl -X POST http://localhost:3000/products \
 curl -X POST http://localhost:3000/carrinho \
   -H "Content-Type: application/json" \
   -d '{
-    "customerName": "João Silva",
+    "customerName": "Maria Santos",
     "phone": "+5511999999999",
-    "note": "Entrega urgente",
+    "note": "Entregar pela manhã, aniversário",
     "items": [
-      { "productId": 1, "qty": 2 },
-      { "productId": 3, "qty": 1 }
+      { "productId": 1, "qty": 1 },
+      { "productId": 3, "qty": 2 }
     ]
   }'
 ```
