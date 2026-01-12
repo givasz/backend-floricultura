@@ -32,3 +32,6 @@ Thumbs.db
 # Build
 dist/
 build/
+
+# Uploads (images are stored on server only)
+uploads/

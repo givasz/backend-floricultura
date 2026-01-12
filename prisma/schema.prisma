@@ -18,39 +18,70 @@ model User {
 }
 
 model Category {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
+  id        Int                     @id @default(autoincrement())
+  name      String                  @unique
   imageUrl  String?
-  products  Product[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  products  ProductCategory[]
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
 }
 
 model Product {
-  id          Int        @id @default(autoincrement())
+  id          Int                @id @default(autoincrement())
   name        String
   description String?
   price       Float
-  imageUrl    String?
-  active      Boolean    @default(true)
-  categoryId  Int?
-  category    Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  imageUrl    String?            // Imagem principal (mantido para compatibilidade)
+  active      Boolean            @default(true)
+  categories  ProductCategory[]
+  images      ProductImage[]     // Múltiplas imagens
   cartItems   CartItem[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  imageUrl  String
+  order     Int      @default(0) // Ordem de exibição das imagens
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model ProductCategory {
+  id         Int      @id @default(autoincrement())
+  productId  Int
+  categoryId Int
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([productId, categoryId])
 }
 
 model Cart {
-  id             Int        @id @default(autoincrement())
-  uid            String     @unique
-  customerName   String?
-  phone          String?
-  note           String?
-  deliveryMethod String?    @default("delivery") // "delivery" ou "pickup"
-  address        String?    // endereço de entrega (quando deliveryMethod = "delivery")
-  items          CartItem[]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id                 Int        @id @default(autoincrement())
+  uid                String     @unique
+  customerName       String?
+  phone              String?
+  note               String?
+  deliveryMethod     String?    @default("delivery") // "delivery" ou "pickup"
+  address            String?    // endereço de entrega (quando deliveryMethod = "delivery")
+
+  // Campos de finalização do pedido
+  paymentMethod      String?    // "pix", "credit_card", "debit_card", "cash"
+  needsChange        Boolean?   @default(false) // se pagamento em dinheiro precisa de troco
+  changeFor          Float?     // valor para o qual precisa de troco (ex: R$ 100,00)
+  recipientName      String?    // nome do destinatário
+  recipientPhone     String?    // telefone do destinatário
+
+  items              CartItem[]
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 }
 
 model CartItem {
@@ -65,4 +96,11 @@ model CartItem {
   updatedAt DateTime @updatedAt
 
   @@unique([cartId, productId])
+}
+
+model Config {
+  id           Int      @id @default(autoincrement())
+  heroImageUrl String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }

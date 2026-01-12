@@ -7,7 +7,11 @@
     "start": "npx prisma db push && node src/index.js",
     "dev": "nodemon src/index.js",
     "migrate": "npx prisma migrate dev",
-    "studio": "npx prisma studio"
+    "studio": "npx prisma studio",
+    "seed": "node prisma/seed.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +23,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "multer": "^2.0.2",
     "nanoid": "^5.1.6",
     "pg": "^8.16.3"
   },

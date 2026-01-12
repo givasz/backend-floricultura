@@ -8,9 +8,9 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5176";
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 // Criar carrinho e gerar link único
-// Payload esperado: { customerName, phone, note, deliveryMethod, address, items: [{ productId, qty }] }
+// Payload esperado: { customerName, phone, note, deliveryMethod, address, paymentMethod, needsChange, changeFor, recipientName, recipientPhone, items: [{ productId, qty }] }
 router.post("/", async (req, res) => {
-  const { customerName, phone, note, deliveryMethod, address, items } = req.body;
+  const { customerName, phone, note, deliveryMethod, address, paymentMethod, needsChange, changeFor, recipientName, recipientPhone, items } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: "Cart must have at least one item" });
@@ -36,6 +36,11 @@ router.post("/", async (req, res) => {
         note,
         deliveryMethod,
         address,
+        paymentMethod,
+        needsChange,
+        changeFor: changeFor ? parseFloat(changeFor) : null,
+        recipientName,
+        recipientPhone,
         items: {
           create: await Promise.all(
             items.map(async (item) => {
@@ -88,10 +93,57 @@ router.get("/:uid", async (req, res) => {
   }
 });
 
+// Atualizar informações de finalização do carrinho (público)
+router.patch("/:uid/finalize", async (req, res) => {
+  const { uid } = req.params;
+  const { paymentMethod, needsChange, changeFor, recipientName, recipientPhone } = req.body;
+
+  // Validar paymentMethod
+  const validPaymentMethods = ["pix", "credit_card", "debit_card", "cash"];
+  if (paymentMethod && !validPaymentMethods.includes(paymentMethod)) {
+    return res.status(400).json({
+      error: "Invalid payment method. Must be one of: pix, credit_card, debit_card, cash"
+    });
+  }
+
+  // Se for dinheiro e precisa de troco, validar o valor
+  if (paymentMethod === "cash" && needsChange && !changeFor) {
+    return res.status(400).json({
+      error: "When needsChange is true, changeFor value is required"
+    });
+  }
+
+  try {
+    const cart = await prisma.cart.findUnique({
+      where: { uid },
+    });
+
+    if (!cart) {
+      return res.status(404).json({ error: "Carrinho não encontrado" });
+    }
+
+    const updated = await prisma.cart.update({
+      where: { uid },
+      data: {
+        paymentMethod,
+        needsChange: paymentMethod === "cash" ? needsChange : false,
+        changeFor: paymentMethod === "cash" && needsChange && changeFor ? parseFloat(changeFor) : null,
+        recipientName,
+        recipientPhone
+      },
+      include: { items: { include: { product: true } } },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Atualizar carrinho (apenas admin)
 router.put("/:uid", adminAuth, async (req, res) => {
   const { uid } = req.params;
-  const { items, customerName, phone, note, deliveryMethod, address } = req.body;
+  const { items, customerName, phone, note, deliveryMethod, address, paymentMethod, needsChange, changeFor, recipientName, recipientPhone } = req.body;
 
   try {
     const cart = await prisma.cart.findUnique({
@@ -127,7 +179,18 @@ router.put("/:uid", adminAuth, async (req, res) => {
 
     const updated = await prisma.cart.update({
       where: { id: cart.id },
-      data: { customerName, phone, note, deliveryMethod, address },
+      data: {
+        customerName,
+        phone,
+        note,
+        deliveryMethod,
+        address,
+        paymentMethod,
+        needsChange,
+        changeFor: changeFor ? parseFloat(changeFor) : null,
+        recipientName,
+        recipientPhone
+      },
       include: { items: { include: { product: true } } },
     });
 

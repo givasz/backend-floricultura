@@ -2,6 +2,91 @@ const express = require("express");
 const router = express.Router();
 const prisma = require("../prismaClient");
 const adminAuth = require("../middlewares/adminAuth");
+const { upload, deleteOldImage } = require("../middleware/upload");
+
+// ============================================================
+// ROTAS DE UPLOAD DE IMAGEM (devem vir ANTES das outras rotas)
+// ============================================================
+
+// Upload de imagem para categoria (apenas admin)
+// POST /categories/upload-image
+router.post("/upload-image", adminAuth, upload.single("image"), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Nenhum arquivo foi enviado" });
+    }
+
+    // Retorna a URL da imagem que foi salva
+    const imageUrl = `/uploads/categories/${req.file.filename}`;
+
+    res.status(201).json({
+      message: "Imagem enviada com sucesso",
+      imageUrl
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Criar categoria COM upload de imagem (apenas admin)
+// POST /categories/with-image
+router.post("/with-image", adminAuth, upload.single("image"), async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    // Gera URL da imagem se foi enviada
+    const imageUrl = req.file ? `/uploads/categories/${req.file.filename}` : null;
+
+    const category = await prisma.category.create({
+      data: { name, imageUrl },
+    });
+
+    res.status(201).json(category);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Atualizar categoria COM upload de imagem (apenas admin)
+// PUT /categories/:id/with-image
+router.put("/:id/with-image", adminAuth, upload.single("image"), async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { name } = req.body;
+
+    // Se uma nova imagem foi enviada, deletar a antiga
+    if (req.file) {
+      const oldCategory = await prisma.category.findUnique({
+        where: { id: parseInt(id) }
+      });
+
+      if (oldCategory?.imageUrl) {
+        deleteOldImage(oldCategory.imageUrl);
+      }
+    }
+
+    // Gera URL da nova imagem se foi enviada
+    const imageUrl = req.file ? `/uploads/categories/${req.file.filename}` : undefined;
+
+    const updateData = {
+      ...(name && { name }),
+      ...(imageUrl && { imageUrl }),
+    };
+
+    const category = await prisma.category.update({
+      where: { id: parseInt(id) },
+      data: updateData,
+    });
+
+    res.json(category);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ============================================================
+// ROTAS NORMAIS (JSON)
+// ============================================================
 
 router.post("/", adminAuth, async (req, res) => {
   const { name, imageUrl } = req.body;

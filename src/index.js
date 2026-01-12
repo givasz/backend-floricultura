@@ -1,12 +1,14 @@
 require("dotenv").config();
 const createServer = require("./server");
 const prisma = require("./prismaClient");
+const path = require("path");
 
 // Importar routers
 const usersRouter = require("./routes/users");
 const productsRouter = require("./routes/products");
 const categoriesRouter = require("./routes/categories");
 const cartsRouter = require("./routes/carts");
+const configRouter = require("./routes/config");
 const adminAuth = require("./middlewares/adminAuth");
 
 const PORT = process.env.PORT || 3000;
@@ -14,10 +16,14 @@ const PORT = process.env.PORT || 3000;
 // Criar aplicação Express
 const app = createServer();
 
+// Servir arquivos estáticos da pasta uploads
+app.use("/uploads", require("express").static(path.join(__dirname, "../uploads")));
+
 // Registrar rotas
 app.use("/users", usersRouter);
 app.use("/products", productsRouter);
 app.use("/categories", categoriesRouter);
+app.use("/config", configRouter);
 
 // Rota administrativa de carrinhos (DEVE vir ANTES da rota /carrinho/:uid)
 app.get("/admin/carrinhos", adminAuth, async (req, res) => {
