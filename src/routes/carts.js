@@ -134,7 +134,16 @@ router.patch("/:uid/finalize", async (req, res) => {
       include: { items: { include: { product: true } } },
     });
 
-    res.json(updated);
+    const link = `${FRONTEND_URL.replace(/\/$/, "")}/carrinho/${updated.uid}`;
+    let whatsappLink = null;
+    const shopNumber = process.env.SHOP_WHATSAPP_NUMBER || process.env.SHOP_WHATSAPP || null;
+    if (shopNumber) {
+      const sanitized = shopNumber.replace(/\D/g, "");
+      whatsappLink = `https://wa.me/${sanitized}?text=${encodeURIComponent(`Pedido: ${link}`)}`;
+    }
+
+    // Retorna o carrinho atualizado, link público e whatsappLink
+    res.json({ ...updated, link, whatsappLink });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
