@@ -8,7 +8,9 @@ function createServer() {
   // Habilitar CORS para todas as origens (desenvolvimento)
   app.use(cors());
 
-  // Middleware global
+  // Middleware global para parsing de JSON e URL-encoded
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
   app.use(bodyParser.json());
 
   // Rotas de saúde

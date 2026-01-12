@@ -9,6 +9,7 @@ const productsRouter = require("./routes/products");
 const categoriesRouter = require("./routes/categories");
 const cartsRouter = require("./routes/carts");
 const configRouter = require("./routes/config");
+const adminRouter = require("./routes/admin");
 const adminAuth = require("./middlewares/adminAuth");
 
 const PORT = process.env.PORT || 3000;
@@ -19,14 +20,21 @@ const app = createServer();
 // Servir arquivos estáticos da pasta uploads
 app.use("/uploads", require("express").static(path.join(__dirname, "../uploads")));
 
-// Registrar rotas
+// Registrar rotas públicas
+app.use("/api/admin", adminRouter); // Rota de login do admin (pública)
 app.use("/users", usersRouter);
 app.use("/products", productsRouter);
 app.use("/categories", categoriesRouter);
 app.use("/config", configRouter);
 
 // Rota administrativa de carrinhos (DEVE vir ANTES da rota /carrinho/:uid)
-const ADMIN_ROUTE = process.env.ADMIN_ROUTE
+const ADMIN_ROUTE = process.env.ADMIN_ROUTE;
+
+// Validar se ADMIN_ROUTE está configurado
+if (!ADMIN_ROUTE) {
+  console.error("ERRO CRÍTICO: Variável de ambiente ADMIN_ROUTE não configurada");
+  process.exit(1);
+}
 
 app.get(`${ADMIN_ROUTE}/carrinhos`, adminAuth, async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
