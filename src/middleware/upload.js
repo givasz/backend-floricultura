@@ -6,8 +6,9 @@ const fs = require('fs');
 const uploadsDir = path.join(__dirname, '../../uploads');
 const productsDir = path.join(uploadsDir, 'products');
 const categoriesDir = path.join(uploadsDir, 'categories');
+const heroDir = path.join(uploadsDir, 'hero');
 
-[uploadsDir, productsDir, categoriesDir].forEach(dir => {
+[uploadsDir, productsDir, categoriesDir, heroDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -19,8 +20,10 @@ const storage = multer.diskStorage({
     // Define o destino baseado na rota
     let uploadPath = productsDir;
 
-    if (req.baseUrl.includes('categories')) {
+    if (req.baseUrl && req.baseUrl.includes('categories')) {
       uploadPath = categoriesDir;
+    } else if (req.baseUrl && req.baseUrl.includes('config')) {
+      uploadPath = heroDir;
     }
 
     cb(null, uploadPath);
