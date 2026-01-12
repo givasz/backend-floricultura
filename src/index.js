@@ -26,7 +26,9 @@ app.use("/categories", categoriesRouter);
 app.use("/config", configRouter);
 
 // Rota administrativa de carrinhos (DEVE vir ANTES da rota /carrinho/:uid)
-app.get("/admin/carrinhos", adminAuth, async (req, res) => {
+const ADMIN_ROUTE = process.env.ADMIN_ROUTE
+
+app.get(`${ADMIN_ROUTE}/carrinhos`, adminAuth, async (req, res) => {
   const { page = 1, limit = 20 } = req.query;
 
   try {
