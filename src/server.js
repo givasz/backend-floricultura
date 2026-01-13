@@ -5,8 +5,26 @@ const cors = require("cors");
 function createServer() {
   const app = express();
 
-  // Habilitar CORS para todas as origens (desenvolvimento)
-  app.use(cors());
+  // Configurar CORS para produção e desenvolvimento
+  const allowedOrigins = [
+    'http://217.196.60.25',      // Frontend em produção
+    'http://localhost:5173',      // Desenvolvimento local
+    'http://localhost:3000',      // Desenvolvimento local alternativo
+  ];
+
+  app.use(cors({
+    origin: function(origin, callback) {
+      // Permite requisições sem origin (mobile apps, Postman, etc)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true
+  }));
 
   // Middleware global para parsing de JSON e URL-encoded
   app.use(express.json());
