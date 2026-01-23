@@ -7,7 +7,8 @@ function createServer() {
 
   // Configurar CORS para produção e desenvolvimento
   const allowedOrigins = [
-    'http://217.196.60.25',      // Frontend em produção
+    'https://flordemaiobygiovanna.netlify.app', // Frontend Netlify (produção)
+    'http://217.196.60.25',      // Frontend em produção (IP)
     'http://localhost:5173',      // Desenvolvimento local
     'http://localhost:3000',      // Desenvolvimento local alternativo
   ];
@@ -23,6 +24,7 @@ function createServer() {
         callback(new Error('Not allowed by CORS'));
       }
     },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true
   }));
 
