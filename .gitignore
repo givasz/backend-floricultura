@@ -36,3 +36,5 @@ build/
 
 # Uploads (images are stored on server only)
 uploads/
+
+nul

@@ -6,12 +6,17 @@ function createServer() {
   const app = express();
 
   // Configurar CORS para produção e desenvolvimento
-  const allowedOrigins = [
-    'https://flordemaiobygiovanna.netlify.app', // Frontend Netlify (produção)
-    'http://217.196.60.25',      // Frontend em produção (IP)
-    'http://localhost:5173',      // Desenvolvimento local
-    'http://localhost:3000',      // Desenvolvimento local alternativo
-  ];
+const corsOptions = {
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://217.196.60.25',
+    'https://flordemaiobygiovanna.netlify.app',
+    'https://flordemaiobygiovannaflores.com.br',
+    'https://www.flordemaiobygiovannaflores.com.br'
+  ],
+  credentials: true
+};
 
   app.use(cors({
     origin: function(origin, callback) {
