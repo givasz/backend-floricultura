@@ -69,8 +69,8 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Visualizar carrinho por UID (público)
-router.get("/:uid", async (req, res) => {
+// Visualizar carrinho por UID (protegido - apenas admin)
+router.get("/:uid", adminAuth, async (req, res) => {
   const { uid } = req.params;
 
   try {
