@@ -68,7 +68,8 @@ model Cart {
   uid                String     @unique
   customerName       String?
   phone              String?
-  note               String?
+  note               String?    // mensagem ao destinatário
+  deliveryNote       String?    // observações de entrega (ex: entregar até 18h)
   deliveryMethod     String?    @default("delivery") // "delivery" ou "pickup"
   address            String?    // endereço de entrega (quando deliveryMethod = "delivery")
 

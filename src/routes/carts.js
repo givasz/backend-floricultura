@@ -8,9 +8,9 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5176";
 const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 8);
 
 // Criar carrinho e gerar link único
-// Payload esperado: { customerName, phone, note, deliveryMethod, address, paymentMethod, needsChange, changeFor, recipientName, recipientPhone, items: [{ productId, qty }] }
+// Payload esperado: { customerName, phone, note, deliveryNote, deliveryMethod, address, paymentMethod, needsChange, changeFor, recipientName, recipientPhone, items: [{ productId, qty }] }
 router.post("/", async (req, res) => {
-  const { customerName, phone, note, deliveryMethod, address, paymentMethod, needsChange, changeFor, recipientName, recipientPhone, items } = req.body;
+  const { customerName, phone, note, deliveryNote, deliveryMethod, address, paymentMethod, needsChange, changeFor, recipientName, recipientPhone, items } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: "Cart must have at least one item" });
@@ -34,6 +34,7 @@ router.post("/", async (req, res) => {
         customerName,
         phone,
         note,
+        deliveryNote,
         deliveryMethod,
         address,
         paymentMethod,
@@ -152,7 +153,7 @@ router.patch("/:uid/finalize", async (req, res) => {
 // Atualizar carrinho (apenas admin)
 router.put("/:uid", adminAuth, async (req, res) => {
   const { uid } = req.params;
-  const { items, customerName, phone, note, deliveryMethod, address, paymentMethod, needsChange, changeFor, recipientName, recipientPhone } = req.body;
+  const { items, customerName, phone, note, deliveryNote, deliveryMethod, address, paymentMethod, needsChange, changeFor, recipientName, recipientPhone } = req.body;
 
   try {
     const cart = await prisma.cart.findUnique({
@@ -192,6 +193,7 @@ router.put("/:uid", adminAuth, async (req, res) => {
         customerName,
         phone,
         note,
+        deliveryNote,
         deliveryMethod,
         address,
         paymentMethod,
